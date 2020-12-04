@@ -67,17 +67,9 @@ struct t_result {
     uint64_t cksum;
 };
 
-// 4 bytes    2 bytes    2 bytes               2 bytes                              6 bytes
-// time_low - time_mid - time_hi          - clock_seq_hi_and_res+clock_seq_low - node
-//                         and                  and
-//                       version
-//              tlow     tmid  thi/v cseq/node
-int8_t x1[] = {0,0,0,0,  0,0,   0,0,  0,0,0,0,0,0,0,0};
-int8_t x2[] = {1,0,0,1,  0,0,   0,0,  0,0,0,0,0,0,0,0};
-bytes_view tuuid1(x1, std::size(x1));
-bytes_view tuuid2(x2, std::size(x2));
-
 struct t_result time_it_ns(int (*function)(bytes_view, bytes_view), size_t repeat) {
+    int8_t x1[16] = {0,};
+    int8_t x2[16] = {0,};
     uint32_t sum1 = 0, sum2 = 0;
 
     std::chrono::high_resolution_clock::time_point t1, t2;
