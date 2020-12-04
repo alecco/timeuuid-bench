@@ -120,7 +120,7 @@ struct t_result time_noop_ns(size_t repeat) {
 
 void process(int repeat) {
     auto pretty_print = [](std::string name, t_result result) {
-        printf("%-25s:  min %3.2f  average %3.2f (cksum %d)\n",
+        printf("%-25s:  min %3.2f  average %3.2f (cksum %011lu)\n",
                 name.data(), result.min, result.average, result.cksum);
     };
     int base_ns = static_cast<int>(time_noop_ns(repeat).min);
