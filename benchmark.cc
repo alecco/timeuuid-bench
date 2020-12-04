@@ -15,8 +15,8 @@ size_t repeat  = 10000;
 
 using bytes_view = std::basic_string_view<int8_t>;
 
-int timeuuid_compare_bytes_noop(bytes_view o1, bytes_view o2) {
-    return 0;
+int timeuuid_compare_bytes_trivial(bytes_view o1, bytes_view o2) {
+    return *reinterpret_cast<const int8_t*>(o1.begin());
 }
 
 inline int timeuuid_compare_bytes_ori(bytes_view o1, bytes_view o2) {
@@ -122,7 +122,7 @@ void process(int repeat) {
     };
     int base_ns = static_cast<int>(time_noop_ns(repeat).min);
     printf("base_ns chrono %d\n", base_ns);
-    pretty_print("noop function",           time_it_ns(timeuuid_compare_bytes_noop,   base_ns, repeat));
+    pretty_print("trivial function",        time_it_ns(timeuuid_compare_bytes_trivial, base_ns, repeat));
     pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    base_ns, repeat));
     pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, base_ns, repeat));
 }
