@@ -15,11 +15,13 @@ size_t repeat  = 10000;
 
 using bytes_view = std::basic_string_view<int8_t>;
 
-inline int timeuuid_compare_bytes_trivial(bytes_view o1, bytes_view o2) {
+// Original method name timeuuid_compare_bytes()
+
+inline int compare_trivial(bytes_view o1, bytes_view o2) {
     return *reinterpret_cast<const int8_t*>(o1.begin());
 }
 
-inline int timeuuid_compare_bytes_ori(bytes_view o1, bytes_view o2) {
+inline int compare_ori(bytes_view o1, bytes_view o2) {
     auto compare_pos = [&] (unsigned pos, int mask, int ifequal) {
         int d = (o1[pos] & mask) - (o2[pos] & mask);
         return d ? d : ifequal;
@@ -34,7 +36,7 @@ inline int timeuuid_compare_bytes_ori(bytes_view o1, bytes_view o2) {
                                 compare_pos(3, 0xff, 0))))))));
 }
 
-inline int timeuuid_compare_bytes_kostja(bytes_view o1, bytes_view o2) {
+inline int compare_kostja(bytes_view o1, bytes_view o2) {
     // Scylla and Cassandra use a standard UUID memory layout:
     // 4 bytes    2 bytes    2 bytes               2 bytes                              6 bytes
     // time_low - time_mid - time_hi_and_version - clock_seq_hi_and_res+clock_seq_low - node
@@ -122,9 +124,9 @@ void process(int repeat) {
     };
     int base_ns = static_cast<int>(time_noop_ns(repeat).min);
     printf("base_ns chrono %d\n", base_ns);
-    pretty_print("trivial function",          time_it_ns(timeuuid_compare_bytes_trivial, base_ns, repeat));
-    pretty_print("original broken (8 bytes)", time_it_ns(timeuuid_compare_bytes_ori,     base_ns, repeat));
-    pretty_print("fixed (full 16 bytes)",     time_it_ns(timeuuid_compare_bytes_kostja,  base_ns, repeat));
+    pretty_print("trivial function",          time_it_ns(compare_trivial, base_ns, repeat));
+    pretty_print("original broken (8 bytes)", time_it_ns(compare_ori,     base_ns, repeat));
+    pretty_print("fixed (full 16 bytes)",     time_it_ns(compare_kostja,  base_ns, repeat));
 }
 
 int main(int argc, char **argv) {
