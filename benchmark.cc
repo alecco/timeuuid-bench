@@ -15,7 +15,7 @@ size_t repeat  = 10000;
 
 using bytes_view = std::basic_string_view<int8_t>;
 
-int timeuuid_compare_bytes_trivial(bytes_view o1, bytes_view o2) {
+inline int timeuuid_compare_bytes_trivial(bytes_view o1, bytes_view o2) {
     return *reinterpret_cast<const int8_t*>(o1.begin());
 }
 
