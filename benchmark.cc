@@ -108,14 +108,13 @@ struct t_result time_noop_ns(size_t repeat) {
 }
 
 void process(int repeat) {
-  auto pretty_print = [](std::string name,
-                                 t_result result) {
-    printf("%-23s: min %3.2f  average %3.2f (cksum %d)\n", name.data(), result.min, result.average, result.cksum);
-  };
-  pretty_print("noop base chrono",        time_noop_ns(repeat));
-  pretty_print("noop function",           time_it_ns(timeuuid_compare_bytes_noop,   repeat));
-  pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    repeat));
-  pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat));
+    auto pretty_print = [](std::string name, t_result result) {
+        printf("%-23s: min %3.2f  average %3.2f (cksum %d)\n", name.data(), result.min, result.average, result.cksum);
+    };
+    pretty_print("noop base chrono",        time_noop_ns(repeat));
+    pretty_print("noop function",           time_it_ns(timeuuid_compare_bytes_noop,   repeat));
+    pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    repeat));
+    pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat));
 }
 
 int main(int argc, char **argv) {
