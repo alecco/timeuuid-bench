@@ -92,14 +92,29 @@ struct t_result time_it_ns(int (*function)(bytes_view, bytes_view), size_t repea
     average /= repeat;
     return t_result{min_value, average, sum2 << 16 | sum1};
 }
+struct t_result time_noop_ns(size_t repeat) {
+    std::chrono::high_resolution_clock::time_point t1, t2;
+    double average = 0;
+    double min_value = DBL_MAX;
+    for (size_t i = 0; i < repeat; i++) {
+        t1 = std::chrono::high_resolution_clock::now();
+        t2 = std::chrono::high_resolution_clock::now();
+        double dif = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+        average += dif;
+        min_value = min_value < dif ? min_value : dif;
+    }
+    average /= repeat;
+    return t_result{min_value, average};
+}
 
 void process(int repeat) {
   auto pretty_print = [](std::string name,
                                  t_result result) {
     printf("%-23s: min %3.2f  average %3.2f (cksum %d)\n", name.data(), result.min, result.average, result.cksum);
   };
+  pretty_print("noop base chrono",        time_noop_ns(repeat));
+  pretty_print("noop function",           time_it_ns(timeuuid_compare_bytes_noop,   repeat));
   pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    repeat));
-  pretty_print("noop",                    time_it_ns(timeuuid_compare_bytes_noop,   repeat));
   pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat));
 }
 
