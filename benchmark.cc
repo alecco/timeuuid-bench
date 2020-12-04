@@ -16,7 +16,7 @@ size_t repeat = 100000;
 using bytes_view = std::basic_string_view<int8_t>;
 
 int timeuuid_compare_bytes_noop(bytes_view o1, bytes_view o2) {
-    return repeat; // XXX return something
+    return 0;
 }
 
 inline int timeuuid_compare_bytes_ori(bytes_view o1, bytes_view o2) {
