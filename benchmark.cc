@@ -68,7 +68,7 @@ struct t_result {
 };
 
 int8_t x1[] = {0,0,0,0,  0,0,   0,   0,  0,0,   0,0,0,0,0,0};
-int8_t x2[] = {1,1,1,1,  1,1,   1,   1,  1,1,   1,1,1,1,1,1};
+int8_t x2[] = {0,0,0,1,  0,0,   0,   0,  0,0,   0,0,0,0,0,0};
 bytes_view tuuid1(x1, std::size(x1));
 bytes_view tuuid2(x2, std::size(x2));
 
