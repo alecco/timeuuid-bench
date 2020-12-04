@@ -122,9 +122,9 @@ void process(int repeat) {
     };
     int base_ns = static_cast<int>(time_noop_ns(repeat).min);
     printf("base_ns chrono %d\n", base_ns);
-    pretty_print("trivial function",        time_it_ns(timeuuid_compare_bytes_trivial, base_ns, repeat));
-    pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    base_ns, repeat));
-    pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, base_ns, repeat));
+    pretty_print("trivial function",          time_it_ns(timeuuid_compare_bytes_trivial, base_ns, repeat));
+    pretty_print("original broken (8 bytes)", time_it_ns(timeuuid_compare_bytes_ori,     base_ns, repeat));
+    pretty_print("fixed (full 16 bytes)",     time_it_ns(timeuuid_compare_bytes_kostja,  base_ns, repeat));
 }
 
 int main(int argc, char **argv) {
