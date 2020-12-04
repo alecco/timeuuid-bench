@@ -3,6 +3,7 @@
 // by Avi (original Cassandra port from Java)
 // and Kostja (refactored Cassandra fix)
 //
+#include <cassert>
 #include <chrono>
 #include <cfloat>
 #include <functional>
@@ -17,7 +18,7 @@ using bytes_view = std::basic_string_view<int8_t>;
 using test_fn = std::function<int(bytes_view, bytes_view)>;
 
 int timeuuid_compare_bytes_noop(bytes_view o1, bytes_view o2) {
-    return 0;
+    return -1;  // XXX adjust to expected value
 }
 
 inline int timeuuid_compare_bytes_ori(bytes_view o1, bytes_view o2) {
@@ -67,20 +68,25 @@ struct t_result {
     double average;
 };
 
-int8_t x1[] = {0,0,0,0,  0,0,   0,   0,  0,0,   0,0,0,0,0,0};
-int8_t x2[] = {0,0,0,1,  0,0,   0,   0,  0,0,   0,0,0,0,0,0};
+// 4 bytes    2 bytes    2 bytes               2 bytes                              6 bytes
+// time_low - time_mid - time_hi          - clock_seq_hi_and_res+clock_seq_low - node
+//                         and                  and
+//                       version
+//              tlow     tmid  thi/v cseq/node
+int8_t x1[] = {0,0,0,0,  0,0,   0,0,  0,0,0,0,0,0,0,0};
+int8_t x2[] = {1,0,0,1,  0,0,   0,0,  0,0,0,0,0,0,0,0};
 bytes_view tuuid1(x1, std::size(x1));
 bytes_view tuuid2(x2, std::size(x2));
 
-struct t_result time_it_ns(test_fn function, size_t repeat) {
+struct t_result time_it_ns(test_fn function, size_t repeat, int expect) {
     std::chrono::high_resolution_clock::time_point t1, t2;
     double average = 0;
     double min_value = DBL_MAX;
     for (size_t i = 0; i < repeat; i++) {
         t1 = std::chrono::high_resolution_clock::now();
-        int ts = function(tuuid1, tuuid2);
+        int tcmp = function(tuuid1, tuuid2);
         t2 = std::chrono::high_resolution_clock::now();
-        // TODO: check return is valid
+        assert(tcmp == expect); // check return is valid and avoid optimizing away
         double dif = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
         average += dif;
         min_value = min_value < dif ? min_value : dif;
@@ -94,9 +100,10 @@ void process(int repeat) {
                                  t_result result) {
     printf("%-23s: min %3.2f  average %3.2f\n", name.data(), result.min, result.average);
   };
-  pretty_print("noop", time_it_ns(timeuuid_compare_bytes_noop, repeat));
-  pretty_print("ori (8 bytes)", time_it_ns(timeuuid_compare_bytes_ori, repeat));
-  pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat));
+  int expect = timeuuid_compare_bytes_ori(tuuid1, tuuid2);
+  pretty_print("ori (8 bytes)", time_it_ns(timeuuid_compare_bytes_ori, repeat, expect));
+  pretty_print("noop", time_it_ns(timeuuid_compare_bytes_noop, repeat, expect));
+  pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat, expect));
 }
 
 int main(int argc, char **argv) {
