@@ -64,6 +64,7 @@ inline int timeuuid_compare_bytes_kostja(bytes_view o1, bytes_view o2) {
 struct t_result {
     double min;
     double average;
+    uint64_t cksum;
 };
 
 // 4 bytes    2 bytes    2 bytes               2 bytes                              6 bytes
@@ -77,29 +78,36 @@ bytes_view tuuid1(x1, std::size(x1));
 bytes_view tuuid2(x2, std::size(x2));
 
 struct t_result time_it_ns(int (*function)(bytes_view, bytes_view), size_t repeat) {
+    uint32_t sum1 = 0, sum2 = 0;
+
     std::chrono::high_resolution_clock::time_point t1, t2;
     double average = 0;
     double min_value = DBL_MAX;
     for (size_t i = 0; i < repeat; i++) {
+        x1[i % 6] = x2[(6 - (i % 6))] = 1; // flip a bit
+        bytes_view tuuid1(x1, std::size(x1));
+        bytes_view tuuid2(x2, std::size(x2));
         t1 = std::chrono::high_resolution_clock::now();
-        int tcmp = function(tuuid1, tuuid2);
+        int res = function(tuuid1, tuuid2);
         t2 = std::chrono::high_resolution_clock::now();
         double dif = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
         average += dif;
-        std::fill(x1, x1 + 16, dif);
         min_value = min_value < dif ? min_value : dif;
+        sum1 = (sum1 + res)  % 0xFFFF;
+        sum2 = (sum2 + sum1) % 0xFFFF;
+        x1[i % 6] = x2[(6 - (i % 6))] = 0; // back to zero
     }
     average /= repeat;
-    return t_result{min_value, average};
+    return t_result{min_value, average, sum2 << 16 | sum1};
 }
 
 void process(int repeat) {
   auto pretty_print = [](std::string name,
                                  t_result result) {
-    printf("%-23s: min %3.2f  average %3.2f\n", name.data(), result.min, result.average);
+    printf("%-23s: min %3.2f  average %3.2f (cksum %d)\n", name.data(), result.min, result.average, result.cksum);
   };
-  pretty_print("ori (8 bytes)", time_it_ns(timeuuid_compare_bytes_ori, repeat));
-  pretty_print("noop", time_it_ns(timeuuid_compare_bytes_noop, repeat));
+  pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    repeat));
+  pretty_print("noop",                    time_it_ns(timeuuid_compare_bytes_noop,   repeat));
   pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat));
 }
 
