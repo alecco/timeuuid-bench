@@ -6,7 +6,6 @@
 #include <cassert>
 #include <chrono>
 #include <cfloat>
-#include <functional>
 #include <iostream>
 #include <stdio.h>
 #include <string_view>
@@ -14,8 +13,6 @@
 const size_t repeat = 100000;
 
 using bytes_view = std::basic_string_view<int8_t>;
-
-using test_fn = std::function<int(bytes_view, bytes_view)>;
 
 int expected;
 
@@ -80,7 +77,7 @@ int8_t x2[] = {1,0,0,1,  0,0,   0,0,  0,0,0,0,0,0,0,0};
 bytes_view tuuid1(x1, std::size(x1));
 bytes_view tuuid2(x2, std::size(x2));
 
-struct t_result time_it_ns(test_fn function, size_t repeat, int expect) {
+struct t_result time_it_ns(int (*function)(bytes_view, bytes_view), size_t repeat, int expect) {
     std::chrono::high_resolution_clock::time_point t1, t2;
     double average = 0;
     double min_value = DBL_MAX;
