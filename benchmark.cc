@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string_view>
 
-size_t repeat = 100000;
+size_t repeat  = 10000;
 
 using bytes_view = std::basic_string_view<int8_t>;
 
@@ -67,30 +67,39 @@ struct t_result {
     uint64_t cksum;
 };
 
-struct t_result time_it_ns(int (*function)(bytes_view, bytes_view), size_t repeat) {
+struct t_result time_it_ns(int (*function)(bytes_view, bytes_view), int base, size_t repeat) {
     int8_t x1[16] = {0,};
     int8_t x2[16] = {0,};
+    bytes_view tuuid1(x1, std::size(x1));
+    bytes_view tuuid2(x2, std::size(x2));
     uint32_t sum1 = 0, sum2 = 0;
+
+    // NOTE: To minimize measurement error, run a case 100x longer than base timer cost
+    //       If base noop is 13 ns, run at least a 1300 times
+    size_t case_loop = base * 100;
 
     std::chrono::high_resolution_clock::time_point t1, t2;
     double average = 0;
     double min_value = DBL_MAX;
     for (size_t i = 0; i < repeat; i++) {
-        x1[i % 6] = x2[(6 - (i % 6))] = 1; // flip a bit
-        bytes_view tuuid1(x1, std::size(x1));
-        bytes_view tuuid2(x2, std::size(x2));
-        t1 = std::chrono::high_resolution_clock::now();
-        int res = function(tuuid1, tuuid2);
-        t2 = std::chrono::high_resolution_clock::now();
+        t1 = std::chrono::high_resolution_clock::now();    // Start
+
+        for (size_t j = 0; j < case_loop; j++) {
+            x1[j % 6] = x2[(6 - (j % 6))] = 1; // flip a bit
+            int res = function(tuuid1, tuuid2);
+
+            sum1 = (sum1 + res)  % 0xFFFF;
+            sum2 = (sum2 + sum1) % 0xFFFF;
+            x1[j % 6] = x2[(6 - (j % 6))] = 0; // unflip the bit
+        }
+
+        t2 = std::chrono::high_resolution_clock::now();     // End
         double dif = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
         average += dif;
         min_value = min_value < dif ? min_value : dif;
-        sum1 = (sum1 + res)  % 0xFFFF;
-        sum2 = (sum2 + sum1) % 0xFFFF;
-        x1[i % 6] = x2[(6 - (i % 6))] = 0; // back to zero
     }
     average /= repeat;
-    return t_result{min_value, average, sum2 << 16 | sum1};
+    return t_result{min_value/case_loop, average/case_loop, sum2 << 16 | sum1};
 }
 struct t_result time_noop_ns(size_t repeat) {
     std::chrono::high_resolution_clock::time_point t1, t2;
@@ -111,10 +120,11 @@ void process(int repeat) {
     auto pretty_print = [](std::string name, t_result result) {
         printf("%-23s: min %3.2f  average %3.2f (cksum %d)\n", name.data(), result.min, result.average, result.cksum);
     };
-    pretty_print("noop base chrono",        time_noop_ns(repeat));
-    pretty_print("noop function",           time_it_ns(timeuuid_compare_bytes_noop,   repeat));
-    pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    repeat));
-    pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat));
+    int base_ns = static_cast<int>(time_noop_ns(repeat).min);
+    printf("base_ns chrono %d\n", base_ns);
+    pretty_print("noop function",           time_it_ns(timeuuid_compare_bytes_noop,   base_ns, repeat));
+    pretty_print("ori (8 bytes)",           time_it_ns(timeuuid_compare_bytes_ori,    base_ns, repeat));
+    pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, base_ns, repeat));
 }
 
 int main(int argc, char **argv) {
