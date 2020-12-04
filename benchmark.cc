@@ -6,11 +6,12 @@
 #include <cassert>
 #include <chrono>
 #include <cfloat>
+#include <cstdlib>
 #include <iostream>
 #include <stdio.h>
 #include <string_view>
 
-const size_t repeat = 100000;
+size_t repeat = 100000;
 
 using bytes_view = std::basic_string_view<int8_t>;
 
@@ -106,5 +107,8 @@ void process(int repeat) {
 }
 
 int main(int argc, char **argv) {
+    if (argc == 2) {
+        repeat = std::atoll(argv[1]);
+    }
     process(repeat);
 }
