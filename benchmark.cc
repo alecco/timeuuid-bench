@@ -17,8 +17,10 @@ using bytes_view = std::basic_string_view<int8_t>;
 
 using test_fn = std::function<int(bytes_view, bytes_view)>;
 
+int expected;
+
 int timeuuid_compare_bytes_noop(bytes_view o1, bytes_view o2) {
-    return -1;  // XXX adjust to expected value
+    return expected;
 }
 
 inline int timeuuid_compare_bytes_ori(bytes_view o1, bytes_view o2) {
@@ -100,10 +102,10 @@ void process(int repeat) {
                                  t_result result) {
     printf("%-23s: min %3.2f  average %3.2f\n", name.data(), result.min, result.average);
   };
-  int expect = timeuuid_compare_bytes_ori(tuuid1, tuuid2);
-  pretty_print("ori (8 bytes)", time_it_ns(timeuuid_compare_bytes_ori, repeat, expect));
-  pretty_print("noop", time_it_ns(timeuuid_compare_bytes_noop, repeat, expect));
-  pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat, expect));
+  expected = timeuuid_compare_bytes_ori(tuuid1, tuuid2);
+  pretty_print("ori (8 bytes)", time_it_ns(timeuuid_compare_bytes_ori, repeat, expected));
+  pretty_print("noop", time_it_ns(timeuuid_compare_bytes_noop, repeat, expected));
+  pretty_print("kostja's fix (16 bytes)", time_it_ns(timeuuid_compare_bytes_kostja, repeat, expected));
 }
 
 int main(int argc, char **argv) {
