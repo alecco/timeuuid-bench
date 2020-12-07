@@ -8,11 +8,23 @@
 #include <chrono>
 #include <cfloat>
 #include <cstdlib>
+#include <endian.h>
 #include <iostream>
 #include <stdio.h>
 #include <string_view>
 
 using bytes_view = std::basic_string_view<int8_t>;
+
+inline uint64_t be_to_cpu(uint64_t x) noexcept { return be64toh(x); }
+
+template <typename T>
+inline
+T
+read_be(const signed char* p) noexcept {
+    T datum = 0;
+    std::copy_n(p, sizeof(T), reinterpret_cast<char*>(&datum));
+    return be_to_cpu(datum);
+}
 
 // Original method name timeuuid_compare_bytes()
 
@@ -42,12 +54,12 @@ inline int compare_kostja(bytes_view o1, bytes_view o2) {
     //
     // Reorder bytes to allow for quick integer compare.
     auto read_msb = [](bytes_view o) -> uint64_t {
-        auto msb = *reinterpret_cast<const uint64_t*>(o.begin());
+        auto msb = read_be<uint64_t>(o.begin());
         auto ret = ((msb & 0x0FFF) << 48) | ((msb & 0xFFFF0000) << 32) | (msb >> 32);
         return ret;
     };
     auto read_lsb = [](bytes_view o) -> uint64_t {
-        uint64_t lsb = *reinterpret_cast<const uint64_t*>(o.begin() + sizeof(uint64_t));
+        uint64_t lsb = read_be<uint64_t>(o.begin() + sizeof(uint64_t));
         // Match the order of int8 compare.
         return lsb ^ 0x8080808080808080;
     };
