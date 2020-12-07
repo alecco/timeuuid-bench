@@ -39,9 +39,9 @@ g++ does not vectorize but seems to focus on data dependencies and produces fast
 ```
 Benchmark           Time             CPU   Iterations
 -----------------------------------------------------
-BM_trivial       2.49 ns         2.49 ns    270171299
-BM_ori           4.31 ns         4.30 ns    159428276
-BM_kostja        3.91 ns         3.90 ns    178458727
+BM_trivial      0.689 ns        0.688 ns    972742139
+BM_ori           2.48 ns         2.48 ns    275273446
+BM_kostja        2.62 ns         2.62 ns    262103218
 ```
 
 
@@ -50,7 +50,7 @@ BM_kostja        3.91 ns         3.90 ns    178458727
 ```
 Benchmark           Time             CPU   Iterations
 -----------------------------------------------------
-BM_trivial       2.30 ns         2.29 ns    300451685
-BM_ori           4.16 ns         4.16 ns    166757347
-BM_kostja        7.62 ns         7.61 ns     87890182
+BM_trivial      0.579 ns        0.578 ns   1000000000
+BM_ori           2.39 ns         2.38 ns    291821068
+BM_kostja        6.27 ns         6.27 ns    103323181
 ```

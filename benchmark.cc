@@ -76,38 +76,52 @@ inline int compare_kostja(bytes_view o1, bytes_view o2) {
 
 
 // Global setup
-int8_t x1[16] = {0,};
-int8_t x2[16] = {0,};
-bytes_view tuuid1(x1, std::size(x1));
-bytes_view tuuid2(x2, std::size(x2));
+int8_t x[256][16];
+int8_t y[256][16];
 int dummy;
 
-inline void reset_x1() {
-    // sometimes is the same to force branch mispredictions
-    if (!(dummy & 1)) {
-        std::fill(x1, x1 + 16, dummy);
+// Change one byte to -1, 0, +1
+void init_xy() {
+    for (size_t u = 0; u < 256; u++) {
+        x[u][0] = u & 0x01;
+        x[u][1] = (u & 0x01) + 1;
+        x[u][u % 16] = -1 + u % 3;
+        y[u][u % 16] =  1 - u % 3;
     }
 }
 
 static void BM_trivial(benchmark::State& state) {
     dummy = 0;
+    init_xy();
+    unsigned u = 0;
     for (auto _ : state) {
-        reset_x1();
-        dummy += compare_trivial(tuuid1, tuuid2);
+        bytes_view xbb(std::begin(x[u & 0xFF]), 16);
+        bytes_view ybb(std::begin(y[(u + 15) & 0xFF]), 16);
+        dummy += compare_trivial(xbb, ybb);
+        u++;
     }
 }
+
 static void BM_ori(benchmark::State& state) {
     dummy = 0;
+    init_xy();
+    unsigned u = 0;
     for (auto _ : state) {
-        reset_x1();
-        dummy += compare_ori(tuuid1, tuuid2);
+        bytes_view xbb(std::begin(x[u & 0xFF]), 16);
+        bytes_view ybb(std::begin(y[(u + 7) & 0xFF]), 16);
+        dummy += compare_ori(xbb, ybb);
+        u++;
     }
 }
 static void BM_kostja(benchmark::State& state) {
     dummy = 0;
+    init_xy();
+    unsigned u = 0;
     for (auto _ : state) {
-        reset_x1();
-        dummy += compare_kostja(tuuid1, tuuid2);
+        bytes_view xbb(std::begin(x[u * 13 & 0xFF]), 16);
+        bytes_view ybb(std::begin(y[u * 17 & 0xFF]), 16);
+        dummy += compare_kostja(xbb, ybb);
+        u++;
     }
 }
 
