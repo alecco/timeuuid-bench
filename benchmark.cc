@@ -29,7 +29,7 @@ read_be(const signed char* p) noexcept {
 // Original method name timeuuid_compare_bytes()
 
 inline int compare_trivial(bytes_view o1, bytes_view o2) {
-    return *reinterpret_cast<const int8_t*>(o1.begin());
+    return o1[0] & o2[0];
 }
 
 inline int compare_ori(bytes_view o1, bytes_view o2) {
