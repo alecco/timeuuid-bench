@@ -68,10 +68,10 @@ inline int compare_kostja(bytes_view o1, bytes_view o2) {
         return ret;
     };
     auto res = tri_compare_uint64_t(read_msb(o1), read_msb(o2));
-    if (res != 0) {
-        return res;
+    if (res == 0) {
+        res = tri_compare_uint64_t(read_lsb(o1), read_lsb(o2));
     }
-    return tri_compare_uint64_t(read_lsb(o1), read_lsb(o2));
+    return res;
 }
 
 
