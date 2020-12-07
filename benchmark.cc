@@ -82,31 +82,32 @@ bytes_view tuuid1(x1, std::size(x1));
 bytes_view tuuid2(x2, std::size(x2));
 int dummy;
 
+inline void reset_x1() {
+    // sometimes is the same to force branch mispredictions
+    if (!(dummy & 1)) {
+        std::fill(x1, x1 + 16, dummy);
+    }
+}
+
 static void BM_trivial(benchmark::State& state) {
     dummy = 0;
     for (auto _ : state) {
-        for (int k = 0; k < 16; k++) {
-            x1[k] = dummy & 0xF;
-        }
-        dummy ^= compare_trivial(tuuid1, tuuid2);
+        reset_x1();
+        dummy += compare_trivial(tuuid1, tuuid2);
     }
 }
 static void BM_ori(benchmark::State& state) {
     dummy = 0;
     for (auto _ : state) {
-        for (int k = 0; k < 16; k++) {
-            x1[k] = dummy & 0xF;
-        }
-        dummy ^= compare_ori(tuuid1, tuuid2);
+        reset_x1();
+        dummy += compare_ori(tuuid1, tuuid2);
     }
 }
 static void BM_kostja(benchmark::State& state) {
     dummy = 0;
     for (auto _ : state) {
-        for (int k = 0; k < 16; k++) {
-            x1[k] = dummy & 0xF;
-        }
-        dummy ^= compare_kostja(tuuid1, tuuid2);
+        reset_x1();
+        dummy += compare_kostja(tuuid1, tuuid2);
     }
 }
 
