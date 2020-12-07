@@ -11,7 +11,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_VERBOSE_MAKEFILE on)
-set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Wall -O2 -lbenchmark")
-set(CMAKE_CXX_FLAGS_DEBUG   "-Wall -O2 -lbenchmark")
+set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Wall -O2 -lbenchmark -march=native")
+set(CMAKE_CXX_FLAGS_DEBUG   "-Wall -O2 -lbenchmark -march=native")
 
 add_executable(benchmark benchmark.cc)
