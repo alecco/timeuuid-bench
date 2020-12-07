@@ -34,6 +34,8 @@ g++ does not vectorize but seems to focus on data dependencies and produces fast
 
 ## Typical output
 
+### GCC 10.2.1
+
 ```
 -----------------------------------------------------
 Benchmark           Time             CPU   Iterations
@@ -41,4 +43,16 @@ Benchmark           Time             CPU   Iterations
 BM_trivial       2.52 ns         2.52 ns    275172756
 BM_ori           4.25 ns         4.25 ns    163576272
 BM_kostja        4.40 ns         4.40 ns    156795515
+```
+
+
+### Clang 11.0.0
+
+```
+-----------------------------------------------------
+Benchmark           Time             CPU   Iterations
+-----------------------------------------------------
+BM_trivial       2.76 ns         2.76 ns    250890298
+BM_ori           4.84 ns         4.83 ns    145255328
+BM_kostja        8.48 ns         8.47 ns     82213166
 ```
