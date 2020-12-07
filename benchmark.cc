@@ -12,6 +12,9 @@
 #include <iostream>
 #include <stdio.h>
 #include <string_view>
+#include <tmmintrin.h>
+#include <smmintrin.h>
+#include <nmmintrin.h>
 
 using bytes_view = std::basic_string_view<int8_t>;
 
@@ -74,6 +77,36 @@ inline int compare_kostja(bytes_view o1, bytes_view o2) {
     return res;
 }
 
+inline int compare_vec(bytes_view o1, bytes_view o2) {
+    const __m128i zero = _mm_setzero_si128();
+    const __m128i d1 = *reinterpret_cast<const __m128i*>(o1.begin());
+    const __m128i d2 = *reinterpret_cast<const __m128i*>(o2.begin());
+    // XXX find actual shuffle indexes
+    const __m128i shuf = _mm_setr_epi8(0, 1, 2, 3, 11, 5, 15, 7, 8, 9, 10, 4, 12, 13, 14, 6);
+    const __m128i d1s = _mm_shuffle_epi8(d1, shuf);
+    const __m128i d2s = _mm_shuffle_epi8(d2, shuf);
+
+    const __m128i sub = _mm_sub_epi64(d1s, d2s);  // differences high ; low
+    // sub     diff hi   |    diff lo
+    //         if nonzero    if nonzero
+    // XXX continue here
+    // const __m128i iszm = _mm_cmpeq_epi64(zero, sub);
+    const int32_t msk8 = _mm_movemask_epi8(sub); // XXX
+    return (msk8 >> 16 & msk8) + 1234;  // XXX extract 2 bits: sign and bit 0
+
+    // now check diff higher non zero, then lower
+    // ret -1 0 1
+
+    // (do not cross whole ints to ALU)
+    // operate in SSE then extract mask
+    // other
+    // const __m128 x = _mm_movehl_ps (sub,
+    // __m128i dst = _mm_unpackhi_epi64 (__m128i a, __m128i b);  // dst:  b_hi:a_hi
+    // uint64_t sub_hi = _mm_extract_epi64(sub, 1);
+    // uint64_t sub_lo = _mm_cvtsi128_si64(sub);
+    // const int32_t islt = _mm_movemask_epi8(_mm_cmpgt_epi64(d2s, d1s)); // XXX inverted GT?
+}
+
 
 // Global setup
 int8_t x1[16] = {0,};
@@ -110,10 +143,18 @@ static void BM_kostja(benchmark::State& state) {
         dummy += compare_kostja(tuuid1, tuuid2);
     }
 }
+static void BM_vec(benchmark::State& state) {
+    dummy = 0;
+    for (auto _ : state) {
+        reset_x1();
+        dummy += compare_vec(tuuid1, tuuid2);
+    }
+}
 
 // Register the function as a benchmark
 BENCHMARK(BM_trivial);
 BENCHMARK(BM_ori);
 BENCHMARK(BM_kostja);
+BENCHMARK(BM_vec);
 // Run the benchmark
 BENCHMARK_MAIN();
