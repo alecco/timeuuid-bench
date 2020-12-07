@@ -3,6 +3,7 @@
 // by Avi (original Cassandra port from Java)
 // and Kostja (refactored Cassandra fix)
 //
+#include <benchmark/benchmark.h>   // Google benchmark
 #include <cassert>
 #include <chrono>
 #include <cfloat>
@@ -10,8 +11,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <string_view>
-
-size_t repeat  = 10000;
 
 using bytes_view = std::basic_string_view<int8_t>;
 
@@ -63,76 +62,45 @@ inline int compare_kostja(bytes_view o1, bytes_view o2) {
     return tri_compare_uint64_t(read_lsb(o1), read_lsb(o2));
 }
 
-struct t_result {
-    double min;
-    double average;
-    uint64_t cksum;
-};
 
-struct t_result time_it_ns(int (*function)(bytes_view, bytes_view), int base, size_t repeat) {
-    int8_t x1[16] = {0,};
-    int8_t x2[16] = {0,};
-    bytes_view tuuid1(x1, std::size(x1));
-    bytes_view tuuid2(x2, std::size(x2));
-    uint32_t sum1 = 0, sum2 = 0;
+// Global setup
+int8_t x1[16] = {0,};
+int8_t x2[16] = {0,};
+bytes_view tuuid1(x1, std::size(x1));
+bytes_view tuuid2(x2, std::size(x2));
+int dummy;
 
-    // NOTE: To minimize measurement error, run a case 100x longer than base timer cost
-    //       If base noop is 13 ns, run at least a 1300 times
-    size_t case_loop = base * 100;
-
-    std::chrono::high_resolution_clock::time_point t1, t2;
-    double average = 0;
-    double min_value = DBL_MAX;
-    for (size_t i = 0; i < repeat; i++) {
-        t1 = std::chrono::high_resolution_clock::now();    // Start
-
-        for (size_t j = 0; j < case_loop; j++) {
-            x1[j % 6] = x2[(6 - (j % 6))] = 1; // flip a bit
-            int res = function(tuuid1, tuuid2);
-
-            sum1 = (sum1 + res)  % 0xFFFF;
-            sum2 = (sum2 + sum1) % 0xFFFF;
-            x1[j % 6] = x2[(6 - (j % 6))] = 0; // unflip the bit
+static void BM_trivial(benchmark::State& state) {
+    dummy = 0;
+    for (auto _ : state) {
+        for (int k = 0; k < 16; k++) {
+            x1[k] = dummy & 0xF;
         }
-
-        t2 = std::chrono::high_resolution_clock::now();     // End
-        double dif = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
-        average += dif;
-        min_value = min_value < dif ? min_value : dif;
+        dummy ^= compare_trivial(tuuid1, tuuid2);
     }
-    average /= repeat;
-    return t_result{min_value/case_loop, average/case_loop, sum2 << 16 | sum1};
 }
-struct t_result time_noop_ns(size_t repeat) {
-    std::chrono::high_resolution_clock::time_point t1, t2;
-    double average = 0;
-    double min_value = DBL_MAX;
-    for (size_t i = 0; i < repeat; i++) {
-        t1 = std::chrono::high_resolution_clock::now();
-        t2 = std::chrono::high_resolution_clock::now();
-        double dif = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
-        average += dif;
-        min_value = min_value < dif ? min_value : dif;
+static void BM_ori(benchmark::State& state) {
+    dummy = 0;
+    for (auto _ : state) {
+        for (int k = 0; k < 16; k++) {
+            x1[k] = dummy & 0xF;
+        }
+        dummy ^= compare_ori(tuuid1, tuuid2);
     }
-    average /= repeat;
-    return t_result{min_value, average};
+}
+static void BM_kostja(benchmark::State& state) {
+    dummy = 0;
+    for (auto _ : state) {
+        for (int k = 0; k < 16; k++) {
+            x1[k] = dummy & 0xF;
+        }
+        dummy ^= compare_kostja(tuuid1, tuuid2);
+    }
 }
 
-void process(int repeat) {
-    auto pretty_print = [](std::string name, t_result result) {
-        printf("%-25s:  min %3.2f  average %3.2f (cksum %011lu)\n",
-                name.data(), result.min, result.average, result.cksum);
-    };
-    int base_ns = static_cast<int>(time_noop_ns(repeat).min);
-    printf("base_ns chrono %d\n", base_ns);
-    pretty_print("trivial function",          time_it_ns(compare_trivial, base_ns, repeat));
-    pretty_print("original broken (8 bytes)", time_it_ns(compare_ori,     base_ns, repeat));
-    pretty_print("fixed (full 16 bytes)",     time_it_ns(compare_kostja,  base_ns, repeat));
-}
-
-int main(int argc, char **argv) {
-    if (argc == 2) {
-        repeat = std::atoll(argv[1]);
-    }
-    process(repeat);
-}
+// Register the function as a benchmark
+BENCHMARK(BM_trivial);
+BENCHMARK(BM_ori);
+BENCHMARK(BM_kostja);
+// Run the benchmark
+BENCHMARK_MAIN();
