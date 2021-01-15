@@ -32,12 +32,44 @@ inline int compare_trivial(bytes_view o1, bytes_view o2) {
     return o1[0] & o2[0];
 }
 
+enum class lexicographical_relation : int8_t {
+    before_all_prefixed,
+    before_all_strictly_prefixed,
+    after_all_prefixed
+};
+
+template <typename InputIt1, typename InputIt2, typename Compare>
+int lexicographical_tri_compare(InputIt1 first1, InputIt1 last1,
+    InputIt2 first2, InputIt2 last2,
+    Compare comp,
+    lexicographical_relation relation1 = lexicographical_relation::before_all_strictly_prefixed,
+    lexicographical_relation relation2 = lexicographical_relation::before_all_strictly_prefixed) {
+    while (first1 != last1 && first2 != last2) {
+        auto c = comp(*first1, *first2);
+        if (c) {
+            return c;
+        }
+        ++first1;
+        ++first2;
+    }
+    bool e1 = first1 == last1;
+    bool e2 = first2 == last2;
+    if (e1 == e2) {
+        return static_cast<int>(relation1) - static_cast<int>(relation2);
+    }
+    if (e2) {
+        return relation2 == lexicographical_relation::after_all_prefixed ? -1 : 1;
+    } else {
+        return relation1 == lexicographical_relation::after_all_prefixed ? 1 : -1;
+    }
+}
+
 inline int compare_ori(bytes_view o1, bytes_view o2) {
     auto compare_pos = [&] (unsigned pos, int mask, int ifequal) {
         int d = (o1[pos] & mask) - (o2[pos] & mask);
         return d ? d : ifequal;
-    };  
-    return compare_pos(6, 0xf,
+    };
+    int res = compare_pos(6, 0xf,
         compare_pos(7, 0xff,
             compare_pos(4, 0xff,
                 compare_pos(5, 0xff,
@@ -45,6 +77,11 @@ inline int compare_ori(bytes_view o1, bytes_view o2) {
                         compare_pos(1, 0xff,
                             compare_pos(2, 0xff,
                                 compare_pos(3, 0xff, 0))))))));
+    if (res != 0) {
+        return res;
+    }
+    return lexicographical_tri_compare(
+        o1.begin(), o1.end(), o2.begin(), o2.end(), [] (const int8_t& a, const int8_t& b) { return a - b; });
 }
 
 inline int compare_kostja(bytes_view o1, bytes_view o2) {
@@ -64,8 +101,7 @@ inline int compare_kostja(bytes_view o1, bytes_view o2) {
         return lsb ^ 0x8080808080808080;
     };
     auto tri_compare_uint64_t = [](uint64_t a, uint64_t b) -> int {
-        auto ret = a < b ? -1 : a != b;
-        return ret;
+        return a < b ? -1 : a != b;
     };
     auto res = tri_compare_uint64_t(read_msb(o1), read_msb(o2));
     if (res == 0) {
