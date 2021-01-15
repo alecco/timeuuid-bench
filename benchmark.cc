@@ -84,22 +84,31 @@ inline int compare_ori(bytes_view o1, bytes_view o2) {
         o1.begin(), o1.end(), o2.begin(), o2.end(), [] (const int8_t& a, const int8_t& b) { return a - b; });
 }
 
-inline int compare_kostja(bytes_view o1, bytes_view o2) {
-    // Scylla and Cassandra use a standard UUID memory layout:
-    // 4 bytes    2 bytes    2 bytes               2 bytes                              6 bytes
-    // time_low - time_mid - time_hi_and_version - clock_seq_hi_and_res+clock_seq_low - node
+// Read 8 most significant bytes of timeuuid from serialized bytes
+inline uint64_t read_msb(bytes_view b) {
+    // cast to unsigned to avoid sign-compliment during shift.
+    auto u64 = [](uint8_t i) -> uint64_t { return i; };
+    // Scylla and Cassandra use a standard UUID memory layout for MSB:
+    // 4 bytes    2 bytes    2 bytes
+    // time_low - time_mid - time_hi_and_version
     //
-    // Reorder bytes to allow for quick integer compare.
-    auto read_msb = [](bytes_view o) -> uint64_t {
-        auto msb = read_be<uint64_t>(o.begin());
-        auto ret = ((msb & 0x0FFF) << 48) | ((msb & 0xFFFF0000) << 32) | (msb >> 32);
-        return ret;
-    };
-    auto read_lsb = [](bytes_view o) -> uint64_t {
-        uint64_t lsb = read_be<uint64_t>(o.begin() + sizeof(uint64_t));
-        // Match the order of int8 compare.
-        return lsb ^ 0x8080808080808080;
-    };
+    // The storage format uses network byte order.
+    // Reorder bytes to allow for an integer compare.
+    return u64(b[6] & 0xf) << 56 | u64(b[7]) << 48 |
+           u64(b[4]) << 40 | u64(b[5]) << 32 |
+           u64(b[0]) << 24 | u64(b[1]) << 16 |
+           u64(b[2]) << 8  | u64(b[3]);
+}
+
+inline uint64_t read_lsb(bytes_view b) {
+    auto u64 = [](uint8_t i) -> uint64_t { return i; };
+    return (u64(b[8]) << 56 | u64(b[9]) << 48 |
+           u64(b[10]) << 40 | u64(b[11]) << 32 |
+           u64(b[12]) << 24 | u64(b[13]) << 16 |
+           u64(b[14]) << 8  | u64(b[15])) ^ 0x8080808080808080;
+}
+
+inline int compare_kostja(bytes_view o1, bytes_view o2) {
     auto tri_compare_uint64_t = [](uint64_t a, uint64_t b) -> int {
         return a < b ? -1 : a != b;
     };
