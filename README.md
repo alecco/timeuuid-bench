@@ -23,6 +23,11 @@ sudo cpupower frequency-set -g performance  # Disable CPU frequency scaling
 sudo cpupower frequency-set -g powersave    # Re-enable CPU frequency scaling
 ```
 
+One liner forcing compilers
+```
+for comp in g++ clang++; do rm -rf build ; CXX="/usr/bin/${comp}" cmake -B build >/dev/null && cmake --build build >/dev/null && sudo cpupower frequency-set -g performance >/dev/null && ./build/benchmark && sudo cpupower frequency-set -g powersave >/dev/null ; done
+```
+
 ## Notes
 
 There's a trivial implementation for base reference (cost of anti-optimizations).
